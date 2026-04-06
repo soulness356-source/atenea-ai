@@ -159,7 +159,7 @@ df['nivel_clean'] = df['nivel_riesgo'].apply(get_nivel_clean)
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("# 🦉 Atenea AI")
-    st.markdown("*Sistema de predicción de deserción escolar*")
+    st.markdown("*Sistema de inteligencia educativa*")
     st.divider()
 
     buscar = st.text_input("🔍 Buscar alumno", placeholder="Nombre o ID...")
@@ -304,7 +304,7 @@ if st.session_state.selected_student:
     show_student_detail(st.session_state.selected_student)
 else:
     st.markdown('<p class="main-header">🦉 Atenea AI</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Sistema de predicción de deserción escolar — Dashboard</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Sistema de inteligencia educativa — Dashboard</p>', unsafe_allow_html=True)
 
     total   = len(df_filtered)
     n_alto  = len(df_filtered[df_filtered['nivel_clean'] == 'Alto'])
@@ -337,10 +337,15 @@ else:
     if total == 0:
         st.info("No se encontraron alumnos con los filtros seleccionados.")
     else:
+        color_map = {
+            'Alto':  '#dc3545',
+            'Medio': '#fd7e14',
+            'Bajo':  '#28a745',
+        }
         for _, row in df_filtered.iterrows():
-            nivel = get_nivel_clean(row['nivel_riesgo'])
+            nivel_clean = get_nivel_clean(row['nivel_riesgo'])
             score = row['score_riesgo']
-            color = {'Alto': '#dc3545', 'Medio': '#fd7e14', 'Bajo': '#28a745'}[nivel]
+            color = color_map[nivel_clean]
 
             with st.container():
                 cols = st.columns([3, 1.5, 2, 3, 1.5])

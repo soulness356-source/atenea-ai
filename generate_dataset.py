@@ -63,7 +63,7 @@ def generate_dataset(output_dir=None):
     semestres = np.random.choice([1, 2, 3, 4, 5, 6, 7, 8], size=N)
 
     # Nombres e IDs
-    nombres = [fake.name() for _ in range(N)]
+    nombres = [fake.first_name() + " " + fake.last_name() for _ in range(N)]
     ids     = [f"EST-{str(i+1).zfill(4)}" for i in range(N)]
 
     df = pd.DataFrame({
