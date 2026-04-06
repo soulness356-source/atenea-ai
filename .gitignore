@@ -1,0 +1,16 @@
+# Generated files — regenerated automatically on first run
+*.pkl
+*.csv
+model_metrics.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
