@@ -99,9 +99,15 @@ def train_model(base_dir=None):
     explainer = shap.TreeExplainer(rf_model)
     shap_values = explainer.shap_values(X)
 
+    # Handle both old SHAP (list) and new SHAP (single array)
+    if isinstance(shap_values, list):
+        sv = shap_values[1]  # old: [class0, class1]
+    else:
+        sv = shap_values     # new: single array for positive class
+
     shap_importance = pd.DataFrame({
         'feature': FEATURES,
-        'importance': np.abs(shap_values[1]).mean(axis=0)
+        'importance': np.abs(sv).mean(axis=0)
     }).sort_values('importance', ascending=False)
     print("\nTop 5 features por importancia SHAP:")
     print(shap_importance.head())
@@ -115,8 +121,6 @@ def train_model(base_dir=None):
         if score > 65:   return '🔴 Alto'
         elif score > 35: return '🟡 Medio'
         else:            return '🟢 Bajo'
-
-    sv = shap_values[1]
     top3_factors = []
     for i in range(len(X)):
         row_shap = pd.Series(sv[i], index=FEATURES)
