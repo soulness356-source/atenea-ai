@@ -14,3 +14,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Streamlit secrets — NEVER subir a git
+.streamlit/secrets.toml
