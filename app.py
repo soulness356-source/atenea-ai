@@ -77,6 +77,171 @@ if not st.session_state.get("authenticated", False):
     show_login()
     st.stop()
 
+# ── Onboarding para docentes nuevos ──────────────────────────────────────────
+def show_onboarding():
+    if "onboarding_step" not in st.session_state:
+        st.session_state["onboarding_step"] = 1
+
+    step = st.session_state["onboarding_step"]
+    total_steps = 4
+
+    st.markdown("""
+    <style>
+        .ob-card {
+            max-width: 680px;
+            margin: 3rem auto;
+            padding: 2.8rem 2.5rem 2rem 2.5rem;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 12px 48px rgba(124, 58, 237, 0.13);
+        }
+        .ob-step-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #7c3aed;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        .ob-title {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #1a1a2e;
+            margin: 0 0 0.6rem 0;
+        }
+        .ob-body {
+            font-size: 1.05rem;
+            color: #444;
+            line-height: 1.65;
+            margin-bottom: 1.4rem;
+        }
+        .ob-progress-bar-bg {
+            background: #e9ecef;
+            border-radius: 99px;
+            height: 6px;
+            margin-bottom: 1.8rem;
+        }
+        .ob-progress-bar-fill {
+            background: linear-gradient(90deg, #7c3aed, #a78bfa);
+            border-radius: 99px;
+            height: 6px;
+        }
+        .ob-risk-row {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.6rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .ob-risk-alto  { background: #fff0f0; color: #c0392b; border: 1.5px solid #f5c6c6; }
+        .ob-risk-medio { background: #fffbf0; color: #9a6400; border: 1.5px solid #ffe08a; }
+        .ob-risk-bajo  { background: #f0fff4; color: #1a7c3e; border: 1.5px solid #b2dfdb; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    progress_pct = int((step / total_steps) * 100)
+
+    st.markdown(f"""
+    <div class="ob-card">
+        <div class="ob-step-label">Paso {step} de {total_steps}</div>
+        <div class="ob-progress-bar-bg">
+            <div class="ob-progress-bar-fill" style="width:{progress_pct}%;"></div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if step == 1:
+        st.markdown("""
+        <div class="ob-title">¡Bienvenido a Atenea AI 🦉</div>
+        <div style="font-size:1rem; color:#7c3aed; font-weight:600; margin-bottom:0.8rem;">
+            Sistema de Inteligencia Educativa
+        </div>
+        <div class="ob-body">
+            Atenea AI analiza el riesgo de deserción escolar de tus alumnos usando inteligencia artificial.
+            En menos de 2 minutos aprenderás a usar el sistema.
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_skip, _, col_next = st.columns([2, 3, 2])
+        with col_skip:
+            if st.button("Saltar tutorial", use_container_width=True):
+                st.session_state["onboarding_done"] = True
+                st.rerun()
+        with col_next:
+            if st.button("Siguiente →", use_container_width=True, type="primary"):
+                st.session_state["onboarding_step"] = 2
+                st.rerun()
+
+    elif step == 2:
+        st.markdown("""
+        <div class="ob-title">¿Qué es el Score de Riesgo?</div>
+        <div class="ob-body">
+            Cada alumno recibe un <strong>score de 0 a 100</strong> calculado por el modelo de IA.
+            Cuanto más alto el número, mayor es la probabilidad de que el alumno abandone sus estudios.
+            El sistema clasifica a cada alumno en uno de tres niveles:
+        </div>
+        <div class="ob-risk-row ob-risk-alto">
+            🔴&nbsp; Alto (65 – 100) — Requiere acción inmediata
+        </div>
+        <div class="ob-risk-row ob-risk-medio">
+            🟡&nbsp; Medio (35 – 65) — Monitorear de cerca
+        </div>
+        <div class="ob-risk-row ob-risk-bajo">
+            🟢&nbsp; Bajo (0 – 35) — Sin intervención urgente
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        _, col_next = st.columns([5, 2])
+        with col_next:
+            if st.button("Siguiente →", use_container_width=True, type="primary"):
+                st.session_state["onboarding_step"] = 3
+                st.rerun()
+
+    elif step == 3:
+        st.markdown("""
+        <div class="ob-title">Filtra y encuentra a tus alumnos</div>
+        <div class="ob-body">
+            En el <strong>sidebar izquierdo</strong> puedes filtrar la lista por <em>nivel de riesgo</em>,
+            <em>grupo</em> y <em>semestre</em> para enfocarte en quienes más lo necesitan.<br><br>
+            Haz clic en <strong>Ver detalle</strong> junto a cualquier alumno para abrir su perfil completo:
+            score, factores de riesgo (análisis SHAP) y un plan de intervención personalizado.<br><br>
+            Desde el perfil también puedes <strong>exportar el reporte individual en CSV</strong>
+            para compartirlo con orientadores o directivos.
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        _, col_next = st.columns([5, 2])
+        with col_next:
+            if st.button("Siguiente →", use_container_width=True, type="primary"):
+                st.session_state["onboarding_step"] = 4
+                st.rerun()
+
+    elif step == 4:
+        st.markdown("""
+        <div class="ob-title">Todo listo 🎉</div>
+        <div class="ob-body">
+            Ya tienes todo lo que necesitas para identificar a los alumnos que más te necesitan.
+            El sistema se actualiza con cada ciclo escolar para mantenerse preciso y relevante.<br><br>
+            <strong>¡Mucho éxito — cada intervención a tiempo puede cambiar una historia!</strong>
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        _, col_enter = st.columns([5, 2])
+        with col_enter:
+            if st.button("¡Entrar al sistema!", use_container_width=True, type="primary"):
+                st.session_state["onboarding_done"] = True
+                st.rerun()
+
+if not st.session_state.get("onboarding_done", False):
+    show_onboarding()
+    st.stop()
+
 # ── Setup automático si no existen los archivos generados ─────────────────────
 def setup_if_needed():
     predictions_path = os.path.join(BASE_DIR, 'students_predictions.csv')

@@ -99,13 +99,11 @@ def train_model(base_dir=None):
     explainer = shap.TreeExplainer(rf_model)
     shap_values = explainer.shap_values(X)
 
-    # Handle all SHAP version formats
+    # Handle both old shap (list) and new shap (3D ndarray) API
     if isinstance(shap_values, list):
-        sv = shap_values[1]          # old SHAP < 0.40: list [class0, class1]
-    elif hasattr(shap_values, 'ndim') and shap_values.ndim == 3:
-        sv = shap_values[:, :, 1]    # SHAP 3D: (n_samples, n_features, n_classes) → take class 1
+        sv = shap_values[1]
     else:
-        sv = shap_values             # SHAP 2D: already (n_samples, n_features)
+        sv = shap_values[:, :, 1]
 
     shap_importance = pd.DataFrame({
         'feature': FEATURES,
