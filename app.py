@@ -24,6 +24,59 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ── Credenciales por escuela ──────────────────────────────────────────────────
+CREDENTIALS = {
+    "demo":      {"password": "demo2024",   "school": "Escuela Demo"},
+    "plantel_a": {"password": "atenea2024", "school": "Plantel A"},
+    "admin":     {"password": "admin2024",  "school": "Admin"},
+}
+
+# ── Pantalla de login ─────────────────────────────────────────────────────────
+def show_login():
+    st.markdown("""
+    <style>
+        .login-container {
+            max-width: 420px;
+            margin: 4rem auto 0 auto;
+            padding: 2.5rem 2rem;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(124, 58, 237, 0.12);
+            text-align: center;
+        }
+        .login-owl   { font-size: 5rem; margin-bottom: 0.2rem; }
+        .login-title { font-size: 2rem; font-weight: 800; color: #7c3aed; margin: 0; }
+        .login-sub   { font-size: 1rem; color: #6c757d; margin-top: 0.3rem; margin-bottom: 2rem; }
+    </style>
+    <div class="login-container">
+        <div class="login-owl">🦉</div>
+        <p class="login-title">Atenea AI</p>
+        <p class="login-sub">Sistema de Inteligencia Educativa</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Centrar los campos de login
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown("<br>", unsafe_allow_html=True)
+        usuario = st.text_input("Usuario", placeholder="usuario", key="login_user")
+        password = st.text_input("Contraseña", type="password", placeholder="contraseña", key="login_pass")
+        entrar = st.button("Entrar", use_container_width=True, type="primary")
+
+        if entrar:
+            cred = CREDENTIALS.get(usuario)
+            if cred and cred["password"] == password:
+                st.session_state["authenticated"] = True
+                st.session_state["school_name"] = cred["school"]
+                st.rerun()
+            else:
+                st.error("Usuario o contraseña incorrectos.")
+
+# ── Verificar autenticación ───────────────────────────────────────────────────
+if not st.session_state.get("authenticated", False):
+    show_login()
+    st.stop()
+
 # ── Setup automático si no existen los archivos generados ─────────────────────
 def setup_if_needed():
     predictions_path = os.path.join(BASE_DIR, 'students_predictions.csv')
@@ -160,6 +213,12 @@ df['nivel_clean'] = df['nivel_riesgo'].apply(get_nivel_clean)
 with st.sidebar:
     st.markdown("# 🦉 Atenea AI")
     st.markdown("*Sistema de inteligencia educativa*")
+    st.divider()
+    st.markdown(f"🏫 **{st.session_state.get('school_name', '')}**")
+    if st.button("Cerrar sesión", use_container_width=True):
+        st.session_state["authenticated"] = False
+        st.session_state["school_name"] = ""
+        st.rerun()
     st.divider()
 
     buscar = st.text_input("🔍 Buscar alumno", placeholder="Nombre o ID...")
