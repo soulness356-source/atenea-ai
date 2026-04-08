@@ -242,9 +242,9 @@ def predict_risk(feature_vector: np.ndarray):
     proba = model.predict_proba(feature_vector)[0][1]
     score = round(proba * 100, 1)
 
-    if score >= 65:
+    if score >= 55:
         nivel = "Alto"
-    elif score >= 35:
+    elif score >= 30:
         nivel = "Medio"
     else:
         nivel = "Bajo"
@@ -287,6 +287,40 @@ def _top3_from_explainer_dict(feature_vector: np.ndarray, explainer_data) -> str
             return ", ".join([FEATURES_ES.get(MODEL_FEATURES[i], MODEL_FEATURES[i]) for i in idxs])
     except Exception:
         return ""
+
+# ── Regla educativa de emergencia ─────────────────────────────────────────────
+def _apply_emergency_rule(score, nivel, promedio_general, asistencia_pct,
+                           motivacion, apoyo_familiar, nivel_estres,
+                           sentido_pertenencia, expectativas_futuro):
+    """
+    Override basado en umbrales educativos reales (México).
+    promedio ≤ 6 ya es reprobatorio; asistencia ≤ 60% es alarma.
+    Considera las 5 variables psicoemocionales en su totalidad.
+    """
+    adversos_psico = 0
+    if motivacion <= 2:           adversos_psico += 1
+    if apoyo_familiar <= 2:       adversos_psico += 1
+    if nivel_estres >= 3:         adversos_psico += 1
+    if sentido_pertenencia <= 2:  adversos_psico += 1
+    if expectativas_futuro <= 2:  adversos_psico += 1
+
+    promedio_reprobatorio = promedio_general <= 6.0
+    asistencia_critica    = asistencia_pct <= 60.0
+    asistencia_muy_baja   = asistencia_pct <= 50.0
+    psico_mayoria_adversa = adversos_psico >= 3
+
+    if promedio_reprobatorio and asistencia_critica and psico_mayoria_adversa:
+        nivel = "Alto"
+        score = max(score, 70.0)
+    elif promedio_reprobatorio and asistencia_muy_baja:
+        nivel = "Alto"
+        score = max(score, 65.0)
+    elif promedio_reprobatorio and adversos_psico >= 2:
+        if nivel == "Bajo":
+            nivel = "Medio"
+            score = max(score, 35.0)
+
+    return score, nivel
 
 # ── RECOMENDACIONES ────────────────────────────────────────────────────────────
 RECOMENDACIONES = {
@@ -696,6 +730,12 @@ def _analizar_y_mostrar(
         st.error("El modelo no está disponible. Asegúrate de que model.pkl existe en el directorio.")
         return None, None, None
 
+    score, nivel = _apply_emergency_rule(
+        score, nivel, promedio_general, asistencia_pct,
+        motivacion, apoyo_familiar, nivel_estres,
+        sentido_pertenencia, expectativas_futuro
+    )
+
     if guardar:
         sb = get_supabase()
         escuela_id = st.session_state.get("escuela_id")
@@ -793,7 +833,7 @@ def page_agregar():
         with c1:
             nombre     = st.text_input("Nombre", key="m_nombre")
             matricula  = st.text_input("Matrícula", key="m_matricula")
-            semestre   = st.number_input("Semestre", min_value=1, max_value=6, value=1, step=1, key="m_semestre")
+            semestre   = st.number_input("Semestre / Año", min_value=1, max_value=6, value=1, step=1, key="m_semestre", help="Semestre o año escolar que cursa el alumno (ej: 3, 4°, etc.)")
         with c2:
             apellidos  = st.text_input("Apellidos", key="m_apellidos")
             grupo      = st.text_input("Grupo (ej: 3A)", key="m_grupo")
@@ -995,6 +1035,11 @@ def page_perfil():
 
         registros_res = sb.table("registros_riesgo").select("*").eq("alumno_id", alumno_id).order("fecha", desc=True).execute()
         registros = registros_res.data or []
+        hist = sb.table("registros_riesgo").select(
+            "fecha,score_riesgo,nivel_riesgo,promedio_general,asistencia_pct,"
+            "materias_reprobadas,tareas_entregadas_pct,llegadas_tarde,reportes_disciplinarios,"
+            "motivacion,apoyo_familiar,nivel_estres,sentido_pertenencia,expectativas_futuro"
+        ).eq("alumno_id", alumno_id).order("fecha").execute()
     except Exception as e:
         st.error(f"Error al cargar perfil: {e}")
         return
@@ -1037,15 +1082,33 @@ def page_perfil():
     color = COLOR_MAP.get(nivel, "#6c757d")
     emoji = {"Alto": "🔴", "Medio": "🟡", "Bajo": "🟢"}.get(nivel, "")
 
+    # ── Tendencia (Cambio 4) ────────────────────────────────────────────────────
+    tendencia_badge = ""
+    if len(registros) >= 2:
+        first_score_t = registros[-1].get("score_riesgo") or 0
+        last_score_t  = registros[0].get("score_riesgo") or 0
+        delta_t = last_score_t - first_score_t
+        if delta_t > 5:
+            tendencia_badge = "📈 En aumento"
+        elif delta_t < -5:
+            tendencia_badge = "📉 Mejorando"
+        else:
+            tendencia_badge = "↔️ Estable"
+
     col_left, col_right = st.columns([1, 2])
 
     with col_left:
+        tendencia_html = (
+            f'<div style="margin-top:0.6rem; font-size:0.85rem; font-weight:600; color:#b0b8d0;">{tendencia_badge}</div>'
+            if tendencia_badge else ""
+        )
         st.markdown(f"""
         <div class="score-card" style="border-color:{color}; background:{color}18;">
             <div class="score-big" style="color:{color};">{f"{score:.0f}" if score else '—'}</div>
             <div style="color:{color}; font-weight:700; font-size:0.9rem; margin-top:0.4rem;">SCORE DE RIESGO</div>
             <div style="font-size:1.2rem; margin-top:0.5rem;">{emoji} Riesgo {nivel}</div>
             <div style="color:#8892a4; font-size:0.75rem; margin-top:0.4rem;">Último análisis: {ultimo.get('fecha', '—')}</div>
+            {tendencia_html}
         </div>
         """, unsafe_allow_html=True)
 
@@ -1121,6 +1184,118 @@ def page_perfil():
         ])
         hist_df = hist_df.sort_values("Fecha")
         st.dataframe(hist_df, use_container_width=True, hide_index=True)
+
+    # ── EVOLUCIÓN LONGITUDINAL (Cambio 3) ──────────────────────────────────────
+    if hist.data and len(hist.data) >= 2:
+        st.markdown("---")
+        st.markdown("### 📈 Evolución del riesgo")
+        df_hist = pd.DataFrame(hist.data)
+        df_hist["fecha"] = pd.to_datetime(df_hist["fecha"])
+        df_hist = df_hist.sort_values("fecha")
+        chart_data = df_hist.set_index("fecha")[["score_riesgo"]]
+        st.line_chart(chart_data, use_container_width=True)
+
+        first_score = df_hist["score_riesgo"].iloc[0]
+        last_score  = df_hist["score_riesgo"].iloc[-1]
+        delta = last_score - first_score
+        if delta > 5:
+            trend_msg   = f"⚠️ El riesgo **aumentó {delta:.0f} puntos** desde el primer registro."
+            trend_color = "#dc3545"
+        elif delta < -5:
+            trend_msg   = f"✅ El riesgo **disminuyó {abs(delta):.0f} puntos** desde el primer registro."
+            trend_color = "#28a745"
+        else:
+            trend_msg   = "↔️ El riesgo se ha **mantenido estable**."
+            trend_color = "#fd7e14"
+        st.markdown(f'<p style="color:{trend_color}; font-weight:600;">{trend_msg}</p>', unsafe_allow_html=True)
+
+    # ── NUEVO ANÁLISIS (Cambio 3 Parte B) ──────────────────────────────────────
+    st.markdown("---")
+    with st.expander("➕ Registrar nuevo análisis", expanded=False):
+        st.markdown("Actualiza las variables del alumno para registrar un nuevo punto de seguimiento.")
+
+        ultimo_hist = hist.data[-1] if hist.data else {}
+
+        with st.form("form_nuevo_analisis"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                na_promedio   = st.number_input("Promedio general", 0.0, 10.0,
+                                  value=float(ultimo_hist.get("promedio_general", 7.0)), step=0.1)
+                na_asistencia = st.number_input("Asistencia (%)", 0.0, 100.0,
+                                  value=float(ultimo_hist.get("asistencia_pct", 80.0)), step=1.0)
+                na_materias   = st.number_input("Materias reprobadas", 0, 10,
+                                  value=int(ultimo_hist.get("materias_reprobadas", 0)))
+            with col2:
+                na_tareas     = st.number_input("Tareas entregadas (%)", 0.0, 100.0,
+                                  value=float(ultimo_hist.get("tareas_entregadas_pct", 80.0)), step=1.0)
+                na_tarde      = st.number_input("Llegadas tarde", 0, 30,
+                                  value=int(ultimo_hist.get("llegadas_tarde", 0)))
+                na_reportes   = st.number_input("Reportes disciplinarios", 0, 20,
+                                  value=int(ultimo_hist.get("reportes_disciplinarios", 0)))
+            with col3:
+                OPTS_MOT = ["Casi nunca (1)", "Pocas veces (2)", "Frecuentemente (3)", "Siempre (4)"]
+                OPTS_APO = ["Sin apoyo (1)", "Poco apoyo (2)", "Buen apoyo (3)", "Apoyo total (4)"]
+                OPTS_EST = ["Casi nada (1)", "Algo (2)", "Bastante (3)", "Muy seguido (4)"]
+                OPTS_PER = ["Para nada (1)", "Poco (2)", "Bastante (3)", "Totalmente (4)"]
+                OPTS_EXP = ["No lo sabe (1)", "Tal vez (2)", "Probablemente (3)", "Seguro (4)"]
+
+                _mot_idx = int(ultimo_hist.get("motivacion", 2)) - 1 if ultimo_hist.get("motivacion") else 1
+                _apo_idx = int(ultimo_hist.get("apoyo_familiar", 2)) - 1 if ultimo_hist.get("apoyo_familiar") else 1
+                _est_idx = int(ultimo_hist.get("nivel_estres", 2)) - 1 if ultimo_hist.get("nivel_estres") else 1
+                _per_idx = int(ultimo_hist.get("sentido_pertenencia", 2)) - 1 if ultimo_hist.get("sentido_pertenencia") else 1
+                _exp_idx = int(ultimo_hist.get("expectativas_futuro", 2)) - 1 if ultimo_hist.get("expectativas_futuro") else 1
+
+                na_motivacion   = st.selectbox("Motivación", OPTS_MOT, index=_mot_idx)
+                na_apoyo        = st.selectbox("Apoyo familiar", OPTS_APO, index=_apo_idx)
+                na_estres       = st.selectbox("Nivel de estrés", OPTS_EST, index=_est_idx)
+                na_pertenencia  = st.selectbox("Sentido de pertenencia", OPTS_PER, index=_per_idx)
+                na_expectativas = st.selectbox("Expectativas futuro", OPTS_EXP, index=_exp_idx)
+
+            submit_nuevo = st.form_submit_button("Guardar análisis", type="primary", use_container_width=True)
+
+        if submit_nuevo:
+            def parse_sel(s): return int(s[-2])
+
+            al_data = sb.table("alumnos").select("semestre,grupo").eq("id", alumno_id).execute()
+            al = al_data.data[0] if al_data.data else {}
+
+            fv_n = build_feature_vector(
+                al.get("semestre", 1), na_promedio, na_asistencia, na_materias,
+                na_tareas, na_tarde, na_reportes,
+                parse_sel(na_motivacion), parse_sel(na_estres),
+                parse_sel(na_apoyo), parse_sel(na_pertenencia), parse_sel(na_expectativas)
+            )
+            score_n, nivel_n, top3_n = predict_risk(fv_n)
+            score_n, nivel_n = _apply_emergency_rule(
+                score_n, nivel_n, na_promedio, na_asistencia,
+                parse_sel(na_motivacion), parse_sel(na_apoyo), parse_sel(na_estres),
+                parse_sel(na_pertenencia), parse_sel(na_expectativas)
+            )
+
+            try:
+                sb.table("registros_riesgo").insert({
+                    "alumno_id": alumno_id,
+                    "escuela_id": st.session_state.get("escuela_id"),
+                    "fecha": date.today().isoformat(),
+                    "promedio_general": na_promedio,
+                    "asistencia_pct": na_asistencia,
+                    "materias_reprobadas": na_materias,
+                    "tareas_entregadas_pct": na_tareas,
+                    "llegadas_tarde": na_tarde,
+                    "reportes_disciplinarios": na_reportes,
+                    "motivacion": parse_sel(na_motivacion),
+                    "apoyo_familiar": parse_sel(na_apoyo),
+                    "nivel_estres": parse_sel(na_estres),
+                    "sentido_pertenencia": parse_sel(na_pertenencia),
+                    "expectativas_futuro": parse_sel(na_expectativas),
+                    "score_riesgo": score_n,
+                    "nivel_riesgo": nivel_n,
+                    "factores_principales": top3_n or "",
+                }).execute()
+                st.success(f"✅ Análisis guardado — Riesgo: {nivel_n} ({score_n:.0f}/100)")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error al guardar: {e}")
 
     # ── BOTÓN INTERVENCIÓN ──────────────────────────────────────────────────────
     st.markdown("---")
