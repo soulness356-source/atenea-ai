@@ -1041,7 +1041,7 @@ def page_perfil():
     with col_left:
         st.markdown(f"""
         <div class="score-card" style="border-color:{color}; background:{color}18;">
-            <div class="score-big" style="color:{color};">{score:.0f if score else '—'}</div>
+            <div class="score-big" style="color:{color};">{f"{score:.0f}" if score else '—'}</div>
             <div style="color:{color}; font-weight:700; font-size:0.9rem; margin-top:0.4rem;">SCORE DE RIESGO</div>
             <div style="font-size:1.2rem; margin-top:0.5rem;">{emoji} Riesgo {nivel}</div>
             <div style="color:#8892a4; font-size:0.75rem; margin-top:0.4rem;">Último análisis: {ultimo.get('fecha', '—')}</div>
