@@ -308,6 +308,21 @@ RECOMENDACIONES = {
     ],
 }
 
+# ── Setup automático ───────────────────────────────────────────────────────────
+def setup_if_needed():
+    """Genera dataset y entrena modelo si no existen los archivos."""
+    model_path = os.path.join(BASE_DIR, "model.pkl")
+    if not os.path.exists(model_path):
+        with st.spinner("🦉 Iniciando sistema por primera vez... esto tarda ~2 minutos"):
+            try:
+                from generate_dataset import generate_dataset
+                from train_model import train_model
+                generate_dataset(output_dir=BASE_DIR)
+                train_model(base_dir=BASE_DIR)
+            except Exception as e:
+                st.error(f"Error al inicializar el sistema: {e}")
+                st.stop()
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PANTALLA DE AUTH
 # ══════════════════════════════════════════════════════════════════════════════
@@ -425,6 +440,8 @@ def _do_register(nombre, apellidos, email, escuela_nombre, rol, grupos, pwd1, pw
         st.success("¡Cuenta creada! Ya puedes iniciar sesión.")
     except Exception as e:
         st.error(f"Error al crear la cuenta: {e}")
+
+setup_if_needed()
 
 # ── GUARD: Auth ────────────────────────────────────────────────────────────────
 if not st.session_state.get("authenticated", False):
