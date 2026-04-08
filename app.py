@@ -1220,18 +1220,18 @@ def page_perfil():
             col1, col2, col3 = st.columns(3)
             with col1:
                 na_promedio   = st.number_input("Promedio general", 0.0, 10.0,
-                                  value=float(ultimo_hist.get("promedio_general", 7.0)), step=0.1)
+                                  value=float(ultimo_hist.get("promedio_general") or 7.0), step=0.1)
                 na_asistencia = st.number_input("Asistencia (%)", 0.0, 100.0,
-                                  value=float(ultimo_hist.get("asistencia_pct", 80.0)), step=1.0)
+                                  value=float(ultimo_hist.get("asistencia_pct") or 80.0), step=1.0)
                 na_materias   = st.number_input("Materias reprobadas", 0, 10,
-                                  value=int(ultimo_hist.get("materias_reprobadas", 0)))
+                                  value=int(ultimo_hist.get("materias_reprobadas") or 0))
             with col2:
                 na_tareas     = st.number_input("Tareas entregadas (%)", 0.0, 100.0,
-                                  value=float(ultimo_hist.get("tareas_entregadas_pct", 80.0)), step=1.0)
+                                  value=float(ultimo_hist.get("tareas_entregadas_pct") or 80.0), step=1.0)
                 na_tarde      = st.number_input("Llegadas tarde", 0, 30,
-                                  value=int(ultimo_hist.get("llegadas_tarde", 0)))
+                                  value=int(ultimo_hist.get("llegadas_tarde") or 0))
                 na_reportes   = st.number_input("Reportes disciplinarios", 0, 20,
-                                  value=int(ultimo_hist.get("reportes_disciplinarios", 0)))
+                                  value=int(ultimo_hist.get("reportes_disciplinarios") or 0))
             with col3:
                 OPTS_MOT = ["Casi nunca (1)", "Pocas veces (2)", "Frecuentemente (3)", "Siempre (4)"]
                 OPTS_APO = ["Sin apoyo (1)", "Poco apoyo (2)", "Buen apoyo (3)", "Apoyo total (4)"]
@@ -1239,11 +1239,11 @@ def page_perfil():
                 OPTS_PER = ["Para nada (1)", "Poco (2)", "Bastante (3)", "Totalmente (4)"]
                 OPTS_EXP = ["No lo sabe (1)", "Tal vez (2)", "Probablemente (3)", "Seguro (4)"]
 
-                _mot_idx = int(ultimo_hist.get("motivacion", 2)) - 1 if ultimo_hist.get("motivacion") else 1
-                _apo_idx = int(ultimo_hist.get("apoyo_familiar", 2)) - 1 if ultimo_hist.get("apoyo_familiar") else 1
-                _est_idx = int(ultimo_hist.get("nivel_estres", 2)) - 1 if ultimo_hist.get("nivel_estres") else 1
-                _per_idx = int(ultimo_hist.get("sentido_pertenencia", 2)) - 1 if ultimo_hist.get("sentido_pertenencia") else 1
-                _exp_idx = int(ultimo_hist.get("expectativas_futuro", 2)) - 1 if ultimo_hist.get("expectativas_futuro") else 1
+                _mot_idx = max(0, int(ultimo_hist.get("motivacion") or 2) - 1)
+                _apo_idx = max(0, int(ultimo_hist.get("apoyo_familiar") or 2) - 1)
+                _est_idx = max(0, int(ultimo_hist.get("nivel_estres") or 2) - 1)
+                _per_idx = max(0, int(ultimo_hist.get("sentido_pertenencia") or 2) - 1)
+                _exp_idx = max(0, int(ultimo_hist.get("expectativas_futuro") or 2) - 1)
 
                 na_motivacion   = st.selectbox("Motivación", OPTS_MOT, index=_mot_idx)
                 na_apoyo        = st.selectbox("Apoyo familiar", OPTS_APO, index=_apo_idx)
