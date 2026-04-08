@@ -1275,7 +1275,6 @@ def page_perfil():
             try:
                 sb.table("registros_riesgo").insert({
                     "alumno_id": alumno_id,
-                    "escuela_id": st.session_state.get("escuela_id"),
                     "fecha": date.today().isoformat(),
                     "promedio_general": na_promedio,
                     "asistencia_pct": na_asistencia,
@@ -1296,6 +1295,23 @@ def page_perfil():
                 st.rerun()
             except Exception as e:
                 st.error(f"Error al guardar: {e}")
+
+    # ── ELIMINAR ALUMNO ─────────────────────────────────────────────────────────
+    st.markdown("---")
+    with st.expander("🗑️ Eliminar alumno", expanded=False):
+        st.warning("⚠️ Esta acción es permanente. Se eliminarán el perfil y todos los registros de riesgo del alumno.")
+        confirmar = st.checkbox("Confirmo que quiero eliminar este alumno permanentemente")
+        if confirmar:
+            if st.button("Eliminar alumno definitivamente", type="primary", use_container_width=True):
+                try:
+                    sb.table("registros_riesgo").delete().eq("alumno_id", alumno_id).execute()
+                    sb.table("alumnos").delete().eq("id", alumno_id).execute()
+                    st.success("Alumno eliminado correctamente.")
+                    st.session_state.pop("alumno_id", None)
+                    st.session_state["page"] = "dashboard"
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al eliminar: {e}")
 
     # ── BOTÓN INTERVENCIÓN ──────────────────────────────────────────────────────
     st.markdown("---")
