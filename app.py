@@ -173,26 +173,27 @@ def load_explainer():
 
 # ── Orden exacto de features del modelo ───────────────────────────────────────
 MODEL_FEATURES = [
-    'semestre', 'promedio_general', 'asistencia_pct', 'materias_reprobadas',
-    'tareas_entregadas_pct', 'llegadas_tarde', 'reportes_disciplinarios',
-    'motivacion_escolar', 'nivel_estres', 'apoyo_familiar',
-    'satisfaccion_escolar', 'participacion_clases', 'apoyo_familiar_int'
+    'promedio_general', 'materias_reprobadas', 'asistencia_pct',
+    'tareas_entregadas_pct', 'participacion_clase',
+    'reportes_disciplinarios', 'llegadas_tarde', 'dias_suspension',
+    'nivel_estres', 'motivacion_escolar', 'apoyo_familiar',
+    'satisfaccion_escolar', 'ansiedad_academica'
 ]
 
 FEATURES_ES = {
-    'semestre': 'Semestre',
     'promedio_general': 'Promedio general',
-    'asistencia_pct': 'Asistencia (%)',
     'materias_reprobadas': 'Materias reprobadas',
+    'asistencia_pct': 'Asistencia (%)',
     'tareas_entregadas_pct': 'Tareas entregadas (%)',
-    'llegadas_tarde': 'Llegadas tarde',
+    'participacion_clase': 'Participación en clase',
     'reportes_disciplinarios': 'Reportes disciplinarios',
-    'motivacion_escolar': 'Motivación escolar',
+    'llegadas_tarde': 'Llegadas tarde',
+    'dias_suspension': 'Días de suspensión',
     'nivel_estres': 'Nivel de estrés',
+    'motivacion_escolar': 'Motivación escolar',
     'apoyo_familiar': 'Apoyo familiar',
     'satisfaccion_escolar': 'Satisfacción escolar',
-    'participacion_clases': 'Participación en clase',
-    'apoyo_familiar_int': 'Apoyo familiar (intensidad)',
+    'ansiedad_academica': 'Ansiedad académica',
 }
 
 def map_1_4_to_1_5(val: int) -> float:
@@ -217,19 +218,19 @@ def build_feature_vector(
     exp_avg = (mot_5 + per_5) / 2.0  # noqa: F841 — disponible por si el modelo cambia
 
     return np.array([[
-        semestre,
-        promedio_general,
-        asistencia_pct,
-        materias_reprobadas,
-        tareas_entregadas_pct,
-        llegadas_tarde,
-        reportes_disciplinarios,
-        mot_5,          # motivacion_escolar
-        est_5,          # nivel_estres
-        apo_5,          # apoyo_familiar
-        per_5,          # satisfaccion_escolar
-        mot_5,          # participacion_clases (mismo valor que motivacion)
-        apo_5,          # apoyo_familiar_int (mismo valor que apoyo_familiar)
+        promedio_general,        # [0]  promedio_general
+        materias_reprobadas,     # [1]  materias_reprobadas
+        asistencia_pct,          # [2]  asistencia_pct
+        tareas_entregadas_pct,   # [3]  tareas_entregadas_pct
+        per_5,                   # [4]  participacion_clase  ← sentido_pertenencia proxy
+        reportes_disciplinarios, # [5]  reportes_disciplinarios
+        llegadas_tarde,          # [6]  llegadas_tarde
+        0.0,                     # [7]  dias_suspension (no recopilado, default 0)
+        est_5,                   # [8]  nivel_estres
+        mot_5,                   # [9]  motivacion_escolar
+        apo_5,                   # [10] apoyo_familiar
+        per_5,                   # [11] satisfaccion_escolar ← sentido_pertenencia proxy
+        est_5,                   # [12] ansiedad_academica   ← nivel_estres proxy
     ]])
 
 def predict_risk(feature_vector: np.ndarray):
